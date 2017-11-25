@@ -102,9 +102,14 @@
   "Collect docker running containers.
 
 Return a list of containers of the form: \(ID NAME\)"
-  (cl-loop for line in (cdr (ignore-errors (apply #'process-lines docker-tramp-docker-executable (append docker-tramp-docker-options (list "ps")))))
-           for info = (split-string line "[[:space:]]+" t)
-           collect (cons (car info) (last info))))
+  (let* ((args (append docker-tramp-docker-options
+                       (list "ps" "--format" "{{.ID}}:{{.Names}}")))
+         (ps (ignore-errors
+               (with-output-to-string
+                 (apply #'process-file docker-tramp-docker-executable nil standard-output nil args))))
+         (lines (split-string ps))
+         (split-by-collon (lambda (str) (split-string str ":"))))
+    (mapcar split-by-collon lines)))
 
 (defun docker-tramp--parse-running-containers (&optional ignored)
   "Return a list of (user host) tuples.
